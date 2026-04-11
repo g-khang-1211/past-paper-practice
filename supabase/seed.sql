@@ -1,0 +1,3 @@
+-- Optional seed file for local development.
+-- The MVP relies on authenticated user-owned data, so no default inserts are
+-- added here.

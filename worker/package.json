@@ -1,0 +1,20 @@
+{
+  "name": "past-paper-practice-worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "TSX_TSCONFIG_PATH=tsconfig.json node --watch --import tsx src/index.ts",
+    "start": "TSX_TSCONFIG_PATH=tsconfig.json node --import tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google/genai": "^1.13.0",
+    "@supabase/supabase-js": "^2.56.0",
+    "pdfjs-dist": "^4.8.69"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
