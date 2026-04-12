@@ -105,9 +105,3 @@ The repo follows the requested split:
 
 - Preview image generation in [`src/lib/pdf/render-preview.ts`]( /Users/giakhang/Desktop/Past-paper-practice/src/lib/pdf/render-preview.ts ) currently returns an empty list.
   The core product still works because the attempt viewer renders the source PDF with PDF.js directly, but server-side thumbnail generation is left minimal to avoid introducing extra native rendering dependencies before deployment decisions are made.
-
-## Notes
-
-- The visual system is implemented from the inspected export in [`.codex/design`]( /Users/giakhang/Desktop/Past-paper-practice/.codex/design ).
-- Some screens like auth, upload, and standalone analytics are inferred conservatively from the inspected shell and card patterns because they were not exported as direct screens.
-- Uploaded PDFs are stored in the private Supabase Storage bucket `papers`. Postgres stores the metadata and storage paths in `papers.question_pdf_path` and `papers.mark_scheme_pdf_path`, so it is expected that you do not see the raw file binary in the database row itself.
