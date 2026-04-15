@@ -40,7 +40,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ att
       return NextResponse.json({ error: "Question context not found." }, { status: 404 });
     }
 
-    const grading = await gradeQuestion({
+    const gradingResult = await gradeQuestion({
       questionLabel: question.question_label,
       questionText: question.question_text,
       answerText: body.answerText ?? answer?.answer_text ?? "",
@@ -51,19 +51,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ att
     const grade = await persistQuestionGrade({
       attemptId,
       questionId: body.questionId,
-      awardedMarks: grading.awardedMarks,
-      maxMarks: grading.maxMarks,
-      confidence: grading.confidence,
-      gradingBasis: grading.gradingBasis,
+      awardedMarks: gradingResult.grade.awardedMarks,
+      maxMarks: gradingResult.grade.maxMarks,
+      confidence: gradingResult.grade.confidence,
+      gradingBasis: gradingResult.grade.gradingBasis,
       feedback: {
-        summary: grading.summary,
-        strengths: grading.strengths,
-        misses: grading.misses,
+        summary: gradingResult.grade.summary,
+        strengths: gradingResult.grade.strengths,
+        misses: gradingResult.grade.misses,
       },
-      rawResponse: grading,
+      rawResponse: gradingResult.grade,
     });
 
-    if (grading.awardedMarks < grading.maxMarks) {
+    if (gradingResult.grade.awardedMarks < gradingResult.grade.maxMarks) {
       await persistMistake({
         userId: attempt.user_id,
         paperId: paper.id,
@@ -71,13 +71,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ att
         questionId: body.questionId,
         gradeId: grade.id,
         topic: question.topic,
-        mistakeType: grading.mistakeType,
-        note: grading.summary,
-        sourceExcerpt: grading.sourceExcerpt,
+        mistakeType: gradingResult.grade.mistakeType,
+        note: gradingResult.grade.summary,
+        sourceExcerpt: gradingResult.grade.sourceExcerpt,
       });
     }
 
-    return NextResponse.json({ grade: { ...grade, ...grading } });
+    return NextResponse.json({
+      grade: { ...grade, ...gradingResult.grade },
+      ...(gradingResult.warning ? { warning: gradingResult.warning } : {}),
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to grade question.";
     return NextResponse.json({ error: message }, { status: 500 });

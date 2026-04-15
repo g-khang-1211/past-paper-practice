@@ -11,12 +11,37 @@ import { Button } from "@/components/ui/button";
 import { SurfaceCard } from "@/components/ui/card";
 import { Pill } from "@/components/ui/pill";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import type { AnswerStatus, Attempt, AttemptAnswer, Paper, Question } from "@/types";
+
+// These view models keep the client state aligned with server-backed attempt data.
+type AttemptAnswerDraft = {
+  text: string;
+  flagged: boolean;
+  status: AnswerStatus;
+};
+
+type HintPanelState = {
+  title: string;
+  content: string;
+  bullet_points?: string[];
+};
+
+type GradePanelState = {
+  awarded_marks?: number;
+  awardedMarks?: number;
+  max_marks?: number;
+  maxMarks?: number;
+};
+
+type AiRoutePayload = {
+  warning?: string;
+};
 
 type AttemptWorkspaceProps = {
-  attempt: any;
-  paper: any;
-  questions: any[];
-  answers: any[];
+  attempt: Attempt;
+  paper: Paper | null;
+  questions: Question[];
+  answers: AttemptAnswer[];
   signedQuestionPdfUrl?: string | null;
 };
 
@@ -28,10 +53,10 @@ export function AttemptWorkspace({
   signedQuestionPdfUrl,
 }: AttemptWorkspaceProps) {
   const [selectedQuestionId, setSelectedQuestionId] = useState(questions[0]?.id ?? null);
-  const [answerMap, setAnswerMap] = useState<Record<string, { text: string; flagged: boolean; status: string }>>(
+  const [answerMap, setAnswerMap] = useState<Record<string, AttemptAnswerDraft>>(
     () =>
       Object.fromEntries(
-        answers.map((answer: any) => [
+        answers.map((answer) => [
           answer.question_id,
           {
             text: answer.answer_text ?? "",
@@ -41,8 +66,9 @@ export function AttemptWorkspace({
         ]),
       ),
   );
-  const [hintResponse, setHintResponse] = useState<any>(null);
-  const [gradeResponse, setGradeResponse] = useState<any>(null);
+  const [hintResponse, setHintResponse] = useState<HintPanelState | null>(null);
+  const [gradeResponse, setGradeResponse] = useState<GradePanelState | null>(null);
+  const [aiWarning, setAiWarning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, startSaving] = useTransition();
   const [isRunningHint, setIsRunningHint] = useState(false);
@@ -57,6 +83,7 @@ export function AttemptWorkspace({
     if (!selectedQuestion) return;
     setHintResponse(null);
     setGradeResponse(null);
+    setAiWarning(null);
   }, [selectedQuestion?.id]);
 
   useEffect(() => {
@@ -97,6 +124,7 @@ export function AttemptWorkspace({
 
   async function requestHint(level: "small_hint" | "method_hint" | "full_explanation") {
     setError(null);
+    setAiWarning(null);
     setIsRunningHint(true);
     const response = await fetch(`/api/attempts/${attempt.id}/help`, {
       method: "POST",
@@ -117,11 +145,13 @@ export function AttemptWorkspace({
       return;
     }
 
-    setHintResponse(payload.hint);
+    setHintResponse(payload.hint as HintPanelState);
+    setAiWarning((payload as AiRoutePayload).warning ?? null);
   }
 
   async function gradeCurrentQuestion() {
     setError(null);
+    setAiWarning(null);
     setIsRunningGrade(true);
     const response = await fetch(`/api/attempts/${attempt.id}/grade-question`, {
       method: "POST",
@@ -141,7 +171,8 @@ export function AttemptWorkspace({
       return;
     }
 
-    setGradeResponse(payload.grade);
+    setGradeResponse(payload.grade as GradePanelState);
+    setAiWarning((payload as AiRoutePayload).warning ?? null);
   }
 
   async function submitAttempt() {
@@ -292,6 +323,11 @@ export function AttemptWorkspace({
                     Full
                   </Button>
                 </div>
+                {aiWarning ? (
+                  <div className="rounded-[1.5rem] border border-secondary/30 bg-secondary/10 p-4 text-sm leading-7 text-on-surface-variant">
+                    {aiWarning}
+                  </div>
+                ) : null}
                 {hintResponse ? (
                   <div className="space-y-4 rounded-[1.5rem] bg-surface-container-high p-4">
                     <p className="font-headline text-xs font-bold uppercase tracking-[0.24em] text-primary">

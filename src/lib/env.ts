@@ -3,11 +3,17 @@ const clientEnv = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
 };
 
-const serverEnv = {
+const supabaseServerEnv = {
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+};
+
+const geminiEnv = {
   GOOGLE_AI_API_KEY: process.env.GOOGLE_AI_API_KEY,
   GEMINI_FAST_MODEL: process.env.GEMINI_FAST_MODEL,
   GEMINI_GRADING_MODEL: process.env.GEMINI_GRADING_MODEL,
+};
+
+const workerEnv = {
   WORKER_SHARED_SECRET: process.env.WORKER_SHARED_SECRET,
 };
 
@@ -32,29 +38,50 @@ export function getClientEnv() {
   };
 }
 
-export function getServerEnv() {
+// Server-side Supabase admin helpers only need the service role key.
+export function getSupabaseServerEnv() {
   return {
-    ...getClientEnv(),
     serviceRoleKey: readRequired(
-      serverEnv.SUPABASE_SERVICE_ROLE_KEY,
+      supabaseServerEnv.SUPABASE_SERVICE_ROLE_KEY,
       "SUPABASE_SERVICE_ROLE_KEY",
     ),
+  };
+}
+
+// Gemini callers should not depend on worker-only secrets.
+export function getGeminiEnv() {
+  return {
     googleAiApiKey: readRequired(
-      serverEnv.GOOGLE_AI_API_KEY,
+      geminiEnv.GOOGLE_AI_API_KEY,
       "GOOGLE_AI_API_KEY",
     ),
     geminiFastModel: readRequired(
-      serverEnv.GEMINI_FAST_MODEL,
+      geminiEnv.GEMINI_FAST_MODEL,
       "GEMINI_FAST_MODEL",
     ),
     geminiGradingModel: readRequired(
-      serverEnv.GEMINI_GRADING_MODEL,
+      geminiEnv.GEMINI_GRADING_MODEL,
       "GEMINI_GRADING_MODEL",
     ),
+  };
+}
+
+// Keep worker-secret access isolated so app AI routes do not require it.
+export function getWorkerSharedSecretEnv() {
+  return {
     workerSharedSecret: readRequired(
-      serverEnv.WORKER_SHARED_SECRET,
+      workerEnv.WORKER_SHARED_SECRET,
       "WORKER_SHARED_SECRET",
     ),
+  };
+}
+
+// This compatibility helper intentionally excludes worker-only secrets.
+export function getServerEnv() {
+  return {
+    ...getClientEnv(),
+    ...getSupabaseServerEnv(),
+    ...getGeminiEnv(),
   };
 }
 
@@ -62,10 +89,9 @@ export function hasRequiredEnv() {
   return Boolean(
     clientEnv.NEXT_PUBLIC_SUPABASE_URL &&
       clientEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-      serverEnv.SUPABASE_SERVICE_ROLE_KEY &&
-      serverEnv.GOOGLE_AI_API_KEY &&
-      serverEnv.GEMINI_FAST_MODEL &&
-      serverEnv.GEMINI_GRADING_MODEL &&
-      serverEnv.WORKER_SHARED_SECRET,
+      supabaseServerEnv.SUPABASE_SERVICE_ROLE_KEY &&
+      geminiEnv.GOOGLE_AI_API_KEY &&
+      geminiEnv.GEMINI_FAST_MODEL &&
+      geminiEnv.GEMINI_GRADING_MODEL,
   );
 }

@@ -9,37 +9,25 @@ import { Button } from "@/components/ui/button";
 import { SurfaceCard } from "@/components/ui/card";
 import { Pill } from "@/components/ui/pill";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import type { Attempt, Paper, Question } from "@/types";
+
+// Keep prop types aligned with the DB-backed domain models this screen receives.
+type PaperPageViewModel = {
+  id: string;
+  page_number: number;
+  extracted_text: string;
+  preview_image_path: string | null;
+};
+
+type PaperAttemptSummary = Pick<Attempt, "id" | "mode" | "status"> & {
+  created_at: string;
+};
 
 type PaperDetailViewProps = {
-  paper: {
-    id: string;
-    title: string;
-    subject: string;
-    parse_status: string;
-    parse_error: string | null;
-    parse_confidence: number | null;
-    page_count: number | null;
-    parsed_pages_count?: number | null;
-    parse_progress_pct?: number | null;
-  };
-  pages: Array<{
-    id: string;
-    page_number: number;
-    extracted_text: string;
-    preview_image_path: string | null;
-  }>;
-  questions: Array<{
-    id: string;
-    question_label: string;
-    question_text: string;
-    marks: number | null;
-  }>;
-  attempts: Array<{
-    id: string;
-    mode: string;
-    status: string;
-    created_at: string;
-  }>;
+  paper: Paper;
+  pages: PaperPageViewModel[];
+  questions: Question[];
+  attempts: PaperAttemptSummary[];
   signedQuestionPdfUrl?: string | null;
 };
 
@@ -52,7 +40,7 @@ export function PaperDetailView({
 }: PaperDetailViewProps) {
   const router = useRouter();
   const [loadingMode, setLoadingMode] = useState<null | "practice" | "exam">(null);
-  const [paperState, setPaperState] = useState(paper);
+  const [paperState, setPaperState] = useState<Paper>(paper);
   const [pageState, setPageState] = useState(pages);
   const [questionState, setQuestionState] = useState(questions);
   const [documentUrl, setDocumentUrl] = useState(signedQuestionPdfUrl ?? null);
@@ -96,13 +84,13 @@ export function PaperDetailView({
         }
 
         if (payload.paper) {
-          setPaperState(payload.paper);
+          setPaperState(payload.paper as Paper);
         }
         if (Array.isArray(payload.pages)) {
-          setPageState(payload.pages);
+          setPageState(payload.pages as PaperPageViewModel[]);
         }
         if (Array.isArray(payload.questions)) {
-          setQuestionState(payload.questions);
+          setQuestionState(payload.questions as Question[]);
         }
         setDocumentUrl(payload.signedQuestionPdfUrl ?? null);
       } catch {

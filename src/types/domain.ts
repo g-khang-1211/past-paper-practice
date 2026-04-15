@@ -1,3 +1,5 @@
+import type { StructuredPaperJsonV1 } from "./structured-paper";
+
 export type PaperParseStatus = "uploaded" | "parsing" | "ready" | "failed";
 export type AttemptMode = "practice" | "exam";
 export type AttemptStatus = "active" | "submitted" | "graded";
@@ -34,7 +36,7 @@ export type Paper = {
   page_count: number | null;
   parsed_pages_count: number;
   parse_progress_pct: number;
-  structured_paper_json: Record<string, unknown>;
+  structured_paper_json: StructuredPaperJsonV1;
   created_at: string;
   updated_at: string;
 };

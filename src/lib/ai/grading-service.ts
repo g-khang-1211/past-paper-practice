@@ -3,10 +3,10 @@ import {
   buildPaperSummaryPrompt,
   buildQuestionGradingPrompt,
 } from "@/lib/ai/prompts/grading-prompts";
-import { getServerEnv } from "@/lib/env";
+import { getGeminiEnv } from "@/lib/env";
 import type { GradingBasis, MistakeType } from "@/types";
 
-type QuestionGradingResult = {
+export type QuestionGradingPayload = {
   awardedMarks: number;
   maxMarks: number;
   confidence: number;
@@ -18,16 +18,26 @@ type QuestionGradingResult = {
   sourceExcerpt: string;
 };
 
+export type GradeQuestionResult = {
+  grade: QuestionGradingPayload;
+  warning?: string;
+};
+
 export async function gradeQuestion(params: {
   questionLabel: string;
   questionText: string;
   answerText: string;
   markSchemeText?: string | null;
   marks?: number | null;
-}): Promise<QuestionGradingResult> {
-  const env = getServerEnv();
-  return generateGeminiJson<QuestionGradingResult>({
-    model: env.geminiGradingModel,
+}): Promise<GradeQuestionResult> {
+  const result = await generateGeminiJson<QuestionGradingPayload>({
+    getConfig: () => {
+      const env = getGeminiEnv();
+      return {
+        apiKey: env.googleAiApiKey,
+        model: env.geminiGradingModel,
+      };
+    },
     prompt: buildQuestionGradingPrompt(params),
     fallback: {
       awardedMarks: 0,
@@ -41,12 +51,37 @@ export async function gradeQuestion(params: {
       sourceExcerpt: params.answerText.slice(0, 180),
     },
   });
+
+  // Keep the existing grading payload intact while letting routes surface a non-fatal warning.
+  return {
+    grade: result.data,
+    warning: result.warning?.message,
+  };
 }
 
-export async function summarizePaperGrading(summaryInput: string) {
-  const env = getServerEnv();
-  return generateGeminiJson({
-    model: env.geminiFastModel,
+export type PaperSummaryPayload = {
+  headline: string;
+  weakTopics: string[];
+  repeatedMistakes: string[];
+  nextStep: string;
+};
+
+export type PaperSummaryResult = {
+  summary: PaperSummaryPayload;
+  warning?: string;
+};
+
+export async function summarizePaperGrading(
+  summaryInput: string,
+): Promise<PaperSummaryResult> {
+  const result = await generateGeminiJson<PaperSummaryPayload>({
+    getConfig: () => {
+      const env = getGeminiEnv();
+      return {
+        apiKey: env.googleAiApiKey,
+        model: env.geminiFastModel,
+      };
+    },
     prompt: buildPaperSummaryPrompt(summaryInput),
     fallback: {
       headline: "Review the lowest-scoring questions first.",
@@ -55,4 +90,9 @@ export async function summarizePaperGrading(summaryInput: string) {
       nextStep: "Rework the missed questions before starting a new paper.",
     },
   });
+
+  return {
+    summary: result.data,
+    warning: result.warning?.message,
+  };
 }

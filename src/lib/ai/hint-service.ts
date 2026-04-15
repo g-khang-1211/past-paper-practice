@@ -1,6 +1,18 @@
-import { getServerEnv } from "@/lib/env";
 import { generateGeminiJson } from "@/lib/ai/gemini-client";
 import { buildHintPrompt } from "@/lib/ai/prompts/hint-prompts";
+import { getGeminiEnv } from "@/lib/env";
+
+export type HintPayload = {
+  level: "small_hint" | "method_hint" | "full_explanation";
+  title: string;
+  content: string;
+  bullet_points: string[];
+};
+
+export type HintResult = {
+  hint: HintPayload;
+  warning?: string;
+};
 
 export async function generateHint(params: {
   level: "small_hint" | "method_hint" | "full_explanation";
@@ -8,10 +20,15 @@ export async function generateHint(params: {
   questionText: string;
   answerText: string;
   markSchemeText?: string | null;
-}) {
-  const env = getServerEnv();
-  return generateGeminiJson({
-    model: env.geminiFastModel,
+}): Promise<HintResult> {
+  const result = await generateGeminiJson<HintPayload>({
+    getConfig: () => {
+      const env = getGeminiEnv();
+      return {
+        apiKey: env.googleAiApiKey,
+        model: env.geminiFastModel,
+      };
+    },
     prompt: buildHintPrompt(params),
     fallback: {
       level: params.level,
@@ -29,4 +46,10 @@ export async function generateHint(params: {
       ],
     },
   });
+
+  // Keep the existing hint payload intact while letting routes surface a non-fatal warning.
+  return {
+    hint: result.data,
+    warning: result.warning?.message,
+  };
 }
