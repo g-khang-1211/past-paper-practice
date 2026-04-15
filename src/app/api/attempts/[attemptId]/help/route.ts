@@ -26,7 +26,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ att
       return NextResponse.json({ error: "Question not found." }, { status: 404 });
     }
 
-    const hint = await generateHint({
+    const hintResult = await generateHint({
       level: body.level,
       questionLabel: question.question_label,
       questionText: question.question_text,
@@ -34,7 +34,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ att
       markSchemeText: question.mark_scheme_text,
     });
 
-    return NextResponse.json({ hint });
+    // Keep the existing success key and add a top-level warning only when needed.
+    return NextResponse.json({
+      hint: hintResult.hint,
+      ...(hintResult.warning ? { warning: hintResult.warning } : {}),
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to fetch hint.";
     return NextResponse.json({ error: message }, { status: 500 });
